@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>글룸헤이븐: 사자의 턱 - 시나리오 헬퍼</title>
+    <title>긴박한 용병단 2</title>
     
     <!-- Cropper.js CDN (이미지 영역 선택용) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -198,7 +198,7 @@
 <body>
 
 <div class="container">
-    <h1>Gloomhaven: Jaws of the Lion</h1>
+    <h1>긴박한 용병단 2</h1>
 
     <div id="statusBox" class="status-msg"></div>
 
@@ -213,12 +213,12 @@
 
     <!-- 배경음악 (BGM) 설정 -->
     <div class="card">
-        <label>⚔️ 긴급한 용병단 전장 BGM (나레이션 연동):</label>
+        <label>⚔️ 긴급한 용병단 전장 BGM (볼륨 80% 고정):</label>
         <div class="bgm-controls">
             <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
-                <span class="setting-val" id="bgmVolVal">볼륨: 30%</span>
-                <input type="range" id="bgmVolSlider" min="0" max="1" step="0.05" value="0.3" oninput="updateBGMVolume(this.value)">
+                <span class="setting-val" id="bgmVolVal">볼륨: 80%</span>
+                <input type="range" id="bgmVolSlider" min="0" max="1" step="0.05" value="0.8" oninput="updateBGMVolume(this.value)">
             </div>
         </div>
     </div>
@@ -294,7 +294,8 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
             bgmMasterGain = audioCtx.createGain();
-            bgmMasterGain.gain.value = parseFloat(document.getElementById('bgmVolSlider').value);
+            // 볼륨 80% 고정
+            bgmMasterGain.gain.value = 0.8;
             bgmMasterGain.connect(audioCtx.destination);
         }
         if (audioCtx.state === 'suspended') {
@@ -302,28 +303,28 @@
         }
     }
 
-    // ⚔️ 어둡고 긴급하며 용병단 전장의 긴박함을 표현한 BGM
+    // ⚔️ 펄스 리듬이 강조되고 저음이 절제된 BGM (긴박한 용병단 2)
     function startSynthBGM() {
         initAudioContext();
         if (isBgmPlaying) return;
 
         bgmOscillators = [];
 
-        // 1. 긴박한 베이스라인 (C2 - C#2 긴장감 조성 불협화음)
-        const baseFreqs = [130.81, 138.59, 196.00]; // C3, C#3, G3
+        // 1. 저음을 축소한 배경 톤 (옥타브 올려 저음 부담 완화 & 약한 볼륨)
+        const baseFreqs = [261.63, 277.18]; // C4, C#4 (저음을 약화시키고 불협화음 살림)
         baseFreqs.forEach((freq, i) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            osc.type = i % 2 === 0 ? 'sawtooth' : 'square';
+            osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            osc.detune.setValueAtTime((Math.random() - 0.5) * 15, audioCtx.currentTime);
 
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            // 저음 음량을 0.02로 극소화
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
 
             const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+            filter.type = 'highpass'; // 저음 주파수를 잘라내는 하이패스 필터 적용
+            filter.frequency.setValueAtTime(200, audioCtx.currentTime);
 
             osc.connect(gain);
             gain.connect(filter);
@@ -333,9 +334,9 @@
             bgmOscillators.push(osc);
         });
 
-        // 2. 긴급한 펄스 리듬 루프 생성 (용병단의 긴박한 진군 느낌)
+        // 2. 강렬하고 또렷해진 펄스 타격 리듬 (볼륨 대폭 상승)
         let pulseStep = 0;
-        const pulseFreqs = [261.63, 277.18, 311.13, 261.63]; // C4, C#4, D#4, C4 (긴장 음계)
+        const pulseFreqs = [311.13, 293.66, 349.23, 277.18]; // D#4, D4, F4, C#4 (긴급한 음계)
 
         bgmPulseTimer = setInterval(() => {
             if (!isBgmPlaying || !audioCtx) return;
@@ -343,26 +344,26 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            osc.type = 'sawtooth';
+            osc.type = 'square'; // 타격감이 명확한 사각파 사용
             osc.frequency.setValueAtTime(pulseFreqs[pulseStep % pulseFreqs.length], audioCtx.currentTime);
 
-            // 두둥-두둥 끊어치는 타격감 패널
-            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+            // 펄스 음량을 기존 0.08에서 0.22로 커스텀 강화하여 크게 타격
+            gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
 
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            filter.frequency.setValueAtTime(1500, audioCtx.currentTime);
 
             osc.connect(gain);
             gain.connect(filter);
             filter.connect(bgmMasterGain);
 
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.2);
+            osc.stop(audioCtx.currentTime + 0.16);
 
             pulseStep++;
-        }, 250); // 250ms 마다 긴급 펄스 재생
+        }, 200); // 200ms 단위로 더욱 빠른 긴급 펄스 타격
 
         isBgmPlaying = true;
         const btn = document.getElementById('bgmToggleBtn');
