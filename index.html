@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>긴박한 용병단 3</title>
+    <title>긴박한 용병단 3 - 사자의 턱 오케스트라</title>
     
     <!-- Cropper.js CDN (이미지 영역 선택용) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -213,7 +213,7 @@
 
     <!-- 배경음악 (BGM) 설정 -->
     <div class="card">
-        <label>🎹 저음 피아노 & 펄스 BGM (볼륨 80% 고정):</label>
+        <label>🏰 사자의 턱 다크 오케스트라 BGM (볼륨 80% 고정):</label>
         <div class="bgm-controls">
             <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
@@ -277,7 +277,8 @@
     let audioCtx = null;
     let bgmMasterGain = null;
     let isBgmPlaying = false;
-    let bgmPulseTimer = null;
+    let bgmLoopTimer = null;
+    let noiseBuffer = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('gcp_api_key');
@@ -293,41 +294,74 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
             bgmMasterGain = audioCtx.createGain();
-            // 볼륨 80% 고정
-            bgmMasterGain.gain.value = 0.8;
+            bgmMasterGain.gain.value = 0.8; // 볼륨 80% 고정
             bgmMasterGain.connect(audioCtx.destination);
+
+            // 타악기/심벌즈용 노이즈 버퍼 생성 (1초)
+            const bufferSize = audioCtx.sampleRate;
+            noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
         }
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
     }
 
-    // 🎹 저음 피아노 음색 합성 함수 (Sine + Triangle 오실레이터 조합)
-    function playDarkPianoNote(freq, time, duration = 2.5) {
+    // 🎻 1. 첼로/스트링 앙상블 (디튠 현악기 질감)
+    function playDarkStrings(freq, time, duration = 3.0) {
         if (!audioCtx || !isBgmPlaying) return;
 
-        // 메인 피아노 음선 (Sine wave)
+        [0, 5, -5].forEach(detuneVal => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, time);
+            osc.detune.setValueAtTime(detuneVal, time);
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(320, time);
+
+            gain.gain.setValueAtTime(0.01, time);
+            gain.gain.linearRampToValueAtTime(0.08, time + 0.6);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(bgmMasterGain);
+
+            osc.start(time);
+            osc.stop(time + duration);
+        });
+    }
+
+    // 🎹 2. 저음 피아노 (Dark Piano)
+    function playDarkPiano(freq, time, duration = 2.2) {
+        if (!audioCtx || !isBgmPlaying) return;
+
         const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
         const gain1 = audioCtx.createGain();
+        const gain2 = audioCtx.createGain();
+
         osc1.type = 'sine';
         osc1.frequency.setValueAtTime(freq, time);
 
-        // 어택/해머 타격감을 만드는 배음 (Triangle wave)
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
         osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(freq * 2, time); // 1옥타브 위 배음
+        osc2.frequency.setValueAtTime(freq * 2, time);
 
-        // Lowpass 필터로 고음을 잘라내 묵직한 디프(Deep) 피아노 톤 연출
         const filter = audioCtx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(450, time);
+        filter.frequency.setValueAtTime(400, time);
 
-        // Envelope (엔벨롭): 피아노 어택 및 감쇠 (Decay)
-        gain1.gain.setValueAtTime(0.35, time);
+        gain1.gain.setValueAtTime(0.3, time);
         gain1.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
-        gain2.gain.setValueAtTime(0.12, time);
+        gain2.gain.setValueAtTime(0.1, time);
         gain2.gain.exponentialRampToValueAtTime(0.001, time + (duration * 0.5));
 
         osc1.connect(gain1);
@@ -342,7 +376,60 @@
         osc2.stop(time + duration);
     }
 
-    // ⚔️ 저음 피아노 선율과 어두운 펄스가 결합된 BGM (긴박한 용병단 3)
+    // 🏛️ 3. 음습한 고딕 오르간 (Gothic Organ Pad)
+    function playOrganPad(freq, time, duration = 3.5) {
+        if (!audioCtx || !isBgmPlaying) return;
+
+        [1, 2, 3].forEach(multiplier => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq * multiplier, time);
+
+            gain.gain.setValueAtTime(0.001, time);
+            gain.gain.linearRampToValueAtTime(0.03 / multiplier, time + 1.0);
+            gain.gain.exponentialRampToValueAtTime(0.0005, time + duration);
+
+            osc.connect(gain);
+            gain.connect(bgmMasterGain);
+
+            osc.start(time);
+            osc.stop(time + duration);
+        });
+    }
+
+    // 🥁 4. 다크 스네어 / 노이즈 심벌 타악기
+    function playDungeonPercussion(time, isCymbal = false) {
+        if (!audioCtx || !isBgmPlaying || !noiseBuffer) return;
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        if (isCymbal) {
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(4000, time);
+            gain.gain.setValueAtTime(0.06, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8);
+        } else {
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(600, time);
+            gain.gain.setValueAtTime(0.15, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+        }
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(bgmMasterGain);
+
+        noise.start(time);
+        noise.stop(time + (isCymbal ? 0.8 : 0.2));
+    }
+
+    // 🏰 종합 오케스트라 BGM 컨트롤 루프
     function startSynthBGM() {
         initAudioContext();
         if (isBgmPlaying) return;
@@ -350,46 +437,34 @@
         isBgmPlaying = true;
 
         let step = 0;
-        // 저음 피아노 음계 (D2, F2, A2, A#2 - 웅장하고 어두운 단조)
-        const pianoNotes = [73.42, 87.31, 110.00, 116.54]; 
-        // 다크 펄스 주파수 (경쾌함을 제외하고 묵직하게 보정)
-        const pulseFreqs = [146.83, 130.81, 164.81, 138.59];
+        // 단조 음계 배열 (D minor 기반: D2, F2, A2, A#2)
+        const bassNotes = [73.42, 87.31, 110.00, 116.54]; 
+        const organNotes = [146.83, 174.61, 220.00, 233.08];
 
-        bgmPulseTimer = setInterval(() => {
+        bgmLoopTimer = setInterval(() => {
             if (!isBgmPlaying || !audioCtx) return;
 
             const now = audioCtx.currentTime;
 
-            // 1. 매 4스텝마다 저음 피아노 음색 연주 (깊은 울림)
+            // 1. 매 4박자마다 첼로 스트링 + 고딕 오르간 패드 연주
             if (step % 4 === 0) {
-                const noteIndex = Math.floor(step / 4) % pianoNotes.length;
-                playDarkPianoNote(pianoNotes[noteIndex], now, 2.2);
+                const idx = Math.floor(step / 4) % bassNotes.length;
+                playDarkStrings(bassNotes[idx], now, 3.2);
+                playOrganPad(organNotes[idx], now, 3.5);
+                playDungeonPercussion(now, true); // 심벌 효과음
             }
 
-            // 2. 묵직하고 절제된 다크 펄스 리듬
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+            // 2. 매 2박자마다 저음 피아노 연주
+            if (step % 2 === 0) {
+                const idx = Math.floor(step / 2) % bassNotes.length;
+                playDarkPiano(bassNotes[idx], now, 2.0);
+            }
 
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(pulseFreqs[step % pulseFreqs.length], now);
-
-            // 서스펜스 강화를 위해 적절한 타격감 유지
-            gain.gain.setValueAtTime(0.18, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(700, now); // 피치를 낮춰 경쾌함 감소
-
-            osc.connect(gain);
-            gain.connect(filter);
-            filter.connect(bgmMasterGain);
-
-            osc.start(now);
-            osc.stop(now + 0.23);
+            // 3. 묵직한 탐험 스네어 타격 리듬
+            playDungeonPercussion(now, false);
 
             step++;
-        }, 250); // 250ms로 템포를 완화하여 경쾌함을 줄이고 중후한 긴장감 부여
+        }, 320); // 320ms 속도로 다크하고 신비로운 중후함 형성
 
         const btn = document.getElementById('bgmToggleBtn');
         btn.textContent = '⏸️ BGM 일시정지';
@@ -397,9 +472,9 @@
     }
 
     function stopSynthBGM() {
-        if (bgmPulseTimer) {
-            clearInterval(bgmPulseTimer);
-            bgmPulseTimer = null;
+        if (bgmLoopTimer) {
+            clearInterval(bgmLoopTimer);
+            bgmLoopTimer = null;
         }
 
         isBgmPlaying = false;
