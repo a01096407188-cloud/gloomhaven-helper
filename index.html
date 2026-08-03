@@ -248,25 +248,25 @@
 
         <label for="voiceSelect" style="margin-top: 12px;">🎙️ AI 성우 선택:</label>
         <select id="voiceSelect">
-            <option value="ko-KR-Neural2-C" selected>AI 남성 C (냉철한 던전 마스터 - 추천)</option>
-            <option value="ko-KR-Wavenet-C">AI 남성 C (Wavenet 저음)</option>
-            <option value="ko-KR-Neural2-A">AI 여성 A (스산한 차가움)</option>
-            <option value="ko-KR-Neural2-B">AI 여성 B (선명한 낭독)</option>
+            <option value="ko-KR-Journey-F" selected>AI Journey F (차세대 스토리텔러 - 추천)</option>
+            <option value="ko-KR-Neural2-C">AI Neural2 C (깊은 남성 저음)</option>
+            <option value="ko-KR-Wavenet-C">AI Wavenet C (클래식 저음)</option>
+            <option value="ko-KR-Neural2-A">AI Neural2 A (스산한 여성 톤)</option>
         </select>
 
         <!-- 목소리 톤 및 속도 세부 설정 창 -->
         <div style="margin-top: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border: 1px solid #3a2b17;">
             <div class="setting-row">
                 <label for="pitchSlider">🎼 음높이 (톤 저음 조절):</label>
-                <span class="setting-val" id="pitchVal">-4.0 (낮음)</span>
+                <span class="setting-val" id="pitchVal">-6.0 (극저음)</span>
             </div>
-            <input type="range" id="pitchSlider" min="-10.0" max="5.0" step="0.5" value="-4.0" oninput="document.getElementById('pitchVal').innerText = this.value">
+            <input type="range" id="pitchSlider" min="-10.0" max="5.0" step="0.5" value="-6.0" oninput="document.getElementById('pitchVal').innerText = this.value + (this.value <= -5 ? ' (극저음)' : '')">
 
             <div class="setting-row" style="margin-top: 10px;">
                 <label for="rateSlider">⚡ 말하기 속도:</label>
-                <span class="setting-val" id="rateVal">0.88x (느림)</span>
+                <span class="setting-val" id="rateVal">0.82x (느림)</span>
             </div>
-            <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.05" value="0.88" oninput="document.getElementById('rateVal').innerText = this.value + 'x'">
+            <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.05" value="0.82" oninput="document.getElementById('rateVal').innerText = this.value + 'x'">
         </div>
 
         <div class="button-group">
@@ -315,17 +315,18 @@
         document.getElementById('statusBox').style.display = 'none';
     }
 
-    // BGM 제어 함수
+    // BGM 제어 함수 (보안 차단 안내 보완)
     function toggleBGM() {
         const bgm = document.getElementById('bgmAudio');
         const btn = document.getElementById('bgmToggleBtn');
 
         if (bgm.paused) {
             bgm.play().then(() => {
+                hideStatus();
                 btn.textContent = '⏸️ BGM 일시정지';
                 btn.style.borderColor = '#c99a4e';
             }).catch(e => {
-                showStatus('BGM 재생 권한 오류. 화면을 먼저 터치해 주세요.', true);
+                showStatus('브라우저 보안 정책으로 소리가 차단되었습니다. 화면을 한번 터치한 후 다시 눌러주세요.');
             });
         } else {
             bgm.pause();
@@ -417,15 +418,14 @@
         }
     }
 
-    // Google Cloud TTS 연동 (속도 및 음높이 톤 조절 적용)
+    // Google Cloud TTS 연동 (SSML 기반 문장 간 침묵 및 극저음 연출)
     async function playTTS() {
         stopTTS();
 
         const apiKey = document.getElementById('apiKey').value.trim();
-        const textToSpeak = document.getElementById('scenarioText').value.trim();
+        const rawText = document.getElementById('scenarioText').value.trim();
         const voiceName = document.getElementById('voiceSelect').value;
 
-        // 사용자가 슬라이더로 설정한 속도 및 톤 수치 수집
         const pitchVal = parseFloat(document.getElementById('pitchSlider').value);
         const rateVal = parseFloat(document.getElementById('rateSlider').value);
 
@@ -434,25 +434,31 @@
             return;
         }
 
-        if (!textToSpeak) {
+        if (!rawText) {
             showStatus('읽을 시나리오 텍스트를 입력해 주세요.', true);
             return;
         }
 
-        showStatus('스산한 음성을 생성하는 중입니다...');
+        showStatus('스산한 던전 마스터 음성을 생성하는 중입니다...');
+
+        // SSML 적용: 마침표(.) 뒤 0.6초, 쉼표(,) 뒤 0.3초의 서스펜스 침묵 추가
+        const ssmlText = `<speak>
+            <break time="400ms"/>
+            ${rawText.replace(/\./g, '. <break time="600ms"/>').replace(/,/g, ', <break time="300ms"/>')}
+        </speak>`;
 
         const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
 
         const requestBody = {
-            input: { text: textToSpeak },
+            input: { ssml: ssmlText },
             voice: {
                 languageCode: 'ko-KR',
                 name: voiceName
             },
             audioConfig: {
                 audioEncoding: 'MP3',
-                speakingRate: rateVal,  // 사용자가 설정한 말하기 속도
-                pitch: pitchVal        // 사용자가 설정한 음높이 (저음)
+                speakingRate: rateVal,
+                pitch: pitchVal
             }
         };
 
