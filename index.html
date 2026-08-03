@@ -213,7 +213,7 @@
 
     <!-- 배경음악 (BGM) 설정 -->
     <div class="card">
-        <label>🦇 스산한 던전 앰비언스 (나레이션 연동 BGM):</label>
+        <label>🦇 지하 동굴 앰비언스 (나레이션 연동 BGM):</label>
         <div class="bgm-controls">
             <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
@@ -251,15 +251,15 @@
         <div style="margin-top: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border: 1px solid #3a2b17;">
             <div class="setting-row">
                 <label for="pitchSlider">🎼 음높이 (톤 저음 조절):</label>
-                <span class="setting-val" id="pitchVal">-6.0 (극저음)</span>
+                <span class="setting-val" id="pitchVal">-6.5 (극저음)</span>
             </div>
-            <input type="range" id="pitchSlider" min="-10.0" max="5.0" step="0.5" value="-6.0" oninput="document.getElementById('pitchVal').innerText = this.value + (this.value <= -5 ? ' (극저음)' : '')">
+            <input type="range" id="pitchSlider" min="-10.0" max="5.0" step="0.5" value="-6.5" oninput="document.getElementById('pitchVal').innerText = this.value + (this.value <= -5 ? ' (극저음)' : '')">
 
             <div class="setting-row" style="margin-top: 10px;">
                 <label for="rateSlider">⚡ 말하기 속도:</label>
-                <span class="setting-val" id="rateVal">0.82x (느림)</span>
+                <span class="setting-val" id="rateVal">0.80x (느림)</span>
             </div>
-            <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.05" value="0.82" oninput="document.getElementById('rateVal').innerText = this.value + 'x'">
+            <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.05" value="0.80" oninput="document.getElementById('rateVal').innerText = this.value + 'x'">
         </div>
 
         <div class="button-group">
@@ -273,7 +273,7 @@
     let cropper = null;
     let currentAudio = null;
 
-    // Web Audio API 기반 오디오 합성기 관련 변수
+    // Web Audio API 오디오 합성기 제어 변수
     let audioCtx = null;
     let bgmMasterGain = null;
     let isBgmPlaying = false;
@@ -287,7 +287,7 @@
         }
     });
 
-    // Web Audio API 오디오 컨텍스트 초기화
+    // Web Audio API 초기화
     function initAudioContext() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -301,31 +301,28 @@
         }
     }
 
-    // 파일 없이 브라우저 자체에서 생성하는 스산한 저음 앰비언스 사운드
+    // 🦇 [옵션 A] 스산하고 음습한 지하 동굴 앰비언스 사운드 합성
     function startSynthBGM() {
         initAudioContext();
         if (isBgmPlaying) return;
 
-        // 극저음 오실레이터 주파수 (어둡고 차가운 던전 분위기)
-        const freqs = [55, 110, 116.54, 164.81]; // A1, A2, A#2, E3
+        // 극저음 피치 (A1, A2, A#2, E3)
+        const freqs = [55, 110, 116.54, 164.81];
         bgmOscillators = [];
 
         freqs.forEach((freq) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            osc.type = 'sawtooth';
+            osc.type = 'sawtooth'; // 두껍고 스산한 파형
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.detune.setValueAtTime((Math.random() - 0.5) * 18, audioCtx.currentTime); // 차가운 불협화음
 
-            // 차가운 불협화음 연출
-            osc.detune.setValueAtTime((Math.random() - 0.5) * 15, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
 
-            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-
-            // 저주파 필터
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+            filter.frequency.setValueAtTime(280, audioCtx.currentTime); // 먹먹한 동굴 느낌
 
             osc.connect(gain);
             gain.connect(filter);
@@ -578,10 +575,10 @@
                 const audioSrc = 'data:audio/mp3;base64,' + data.audioContent;
                 currentAudio = new Audio(audioSrc);
 
-                // 🔊 1. 나레이션 시작 시 BGM 자동으로 키기
+                // 🔊 나레이션 시작 시 지하 동굴 BGM 자동 시작
                 startSynthBGM();
 
-                // 🔇 2. 나레이션이 모두 끝나면 BGM 자동으로 끄기
+                // 🔇 나레이션 종료 시 BGM 자동 정지
                 currentAudio.onended = () => {
                     stopSynthBGM();
                 };
@@ -601,7 +598,7 @@
             currentAudio.currentTime = 0;
             currentAudio = null;
         }
-        // 🔇 정지 버튼 누를 시 BGM도 자동으로 꺼짐
+        // 🔇 나레이션 정지 시 BGM도 정지
         stopSynthBGM();
     }
 </script>
