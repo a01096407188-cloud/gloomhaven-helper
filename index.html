@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글룸헤이븐: 사자의 턱 - 컴패니언 헬퍼 & BGM</title>
+    <title>글룸헤이븐: 사자의 턱 - 컴패니언 헬퍼 & BGM & 시나리오 TTS</title>
+    <!-- 🖼️ OCR(이미지 텍스트 인식) 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --bg-color: #0d0b10;
@@ -57,7 +59,7 @@
             align-items: center;
         }
 
-        select, button {
+        select, button, input[type="file"] {
             background-color: #2a2238;
             color: var(--text-main);
             border: 1px solid var(--accent-gold);
@@ -89,6 +91,21 @@
         }
         .elem-box.active { border-color: var(--accent-gold); background: #3a2e4c; }
         .elem-state { font-size: 0.8rem; color: var(--accent-gold); }
+
+        /* TTS 패널 스타일 추가 */
+        .tts-controls { display: flex; flex-direction: column; gap: 10px; }
+        .tts-preview {
+            width: 100%;
+            height: 100px;
+            background-color: #120e17;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-main);
+            padding: 8px;
+            resize: vertical;
+            font-size: 0.9rem;
+        }
+        .status-msg { font-size: 0.85rem; color: var(--accent-gold); margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -99,7 +116,7 @@
 
     <div class="dashboard">
         
-        <!-- 🎵 Web Audio API BGM 플레이어 (다키스트 던전 + 개미굴) -->
+        <!-- 🎵 Web Audio API BGM 플레이어 -->
         <div class="panel">
             <h2>🎵 배경음악 (Web Audio BGM)</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -127,6 +144,22 @@
                 <div class="elem-box" onclick="toggleElement(this)"><br>🌿 대지<br><span class="elem-state">OFF</span></div>
                 <div class="elem-box" onclick="toggleElement(this)"><br>☀️ 빛<br><span class="elem-state">OFF</span></div>
                 <div class="elem-box" onclick="toggleElement(this)"><br>🌙 어둠<br><span class="elem-state">OFF</span></div>
+            </div>
+        </div>
+
+        <!-- 📖 [신규] 시나리오 사진 OCR 및 낭독(TTS) 패널 -->
+        <div class="panel" style="grid-column: span 2;">
+            <h2>📖 시나리오 이미지 낭독기 (OCR & TTS)</h2>
+            <div class="tts-controls">
+                <div>
+                    <input type="file" id="imageInput" accept="image/*" onchange="processImage(event)">
+                    <span id="ocrStatus" class="status-msg">사진을 선택하면 글자를 인식합니다.</span>
+                </div>
+                <textarea id="scenarioText" class="tts-preview" placeholder="인식된 시나리오 텍스트가 여기에 표시되며 직접 수정도 가능합니다."></textarea>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="speakScenario()">🎙️ 네레이션 읽기</button>
+                    <button onclick="stopScenario()">⏹️ 중지</button>
+                </div>
             </div>
         </div>
 
@@ -281,7 +314,7 @@
             }
         }
 
-        // 라운드 넘기기 및 원소 쇠퇴(STRONG -> WANING -> OFF) 자동화
+        // 라운드 넘기기 및 원소 쇠퇴 자동화
         function nextRound() {
             const r = document.getElementById('roundNum');
             r.textContent = parseInt(r.textContent) + 1;
@@ -295,6 +328,65 @@
                     state.textContent = 'OFF';
                 }
             });
+        }
+
+        // -------------------------------------------------------------
+        // 🎙️ [신규 기능] 이미지 텍스트 인식(OCR) & 음성 출력(TTS) 로직
+        // -------------------------------------------------------------
+
+        // 1. 이미지 업로드 시 Tesseract.js로 글자 추출
+        async function processImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('ocrStatus');
+            const textArea = document.getElementById('scenarioText');
+
+            statusEl.textContent = '⏳ 이미지 분석 중... (잠시만 기다려주세요)';
+            
+            try {
+                // Tesseract.js 실행 (한국어 + 영어 지원)
+                const worker = await Tesseract.createWorker('kor+eng');
+                const ret = await worker.recognize(file);
+                
+                textArea.value = ret.data.text.trim();
+                statusEl.textContent = '✅ 인식 완료! 아래 텍스트를 확인 및 수정한 뒤 읽기 버튼을 누르세요.';
+                await worker.terminate();
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = '❌ 이미지 인식 중 오류가 발생했습니다.';
+            }
+        }
+
+        // 2. Web Speech API로 텍스트 음성 출력
+        function speakScenario() {
+            const text = document.getElementById('scenarioText').value;
+            if (!text) {
+                alert('읽을 시나리오 텍스트가 없습니다. 사진을 업로드하거나 직접 입력하세요.');
+                return;
+            }
+
+            // 기존 음성 중단
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            
+            // 분위기 있는 네레이션을 위한 음조(pitch) 및 속도(rate) 조절
+            utterance.pitch = 0.85; // 낮고 중후한 톤
+            utterance.rate = 0.95;  // 전달력을 위해 살짝 천천히
+
+            // 한국어 음성 보이스 지정
+            const voices = window.speechSynthesis.getVoices();
+            const korVoice = voices.find(v => v.lang.includes('ko'));
+            if (korVoice) utterance.voice = korVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 3. 음성 중단
+        function stopScenario() {
+            window.speechSynthesis.cancel();
         }
     </script>
 </body>
