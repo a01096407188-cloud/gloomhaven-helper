@@ -215,14 +215,14 @@
     <div class="card">
         <label>🦇 스산한 동굴 BGM (개미굴 분위기):</label>
         <div class="bgm-controls">
-            <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생</button>
+            <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">⏸️ BGM 일시정지</button>
             <div style="flex: 1;">
                 <span class="setting-val" id="bgmVolVal">볼륨: 30%</span>
                 <input type="range" id="bgmVolSlider" min="0" max="1" step="0.05" value="0.3" oninput="updateBGMVolume(this.value)">
             </div>
         </div>
-        <!-- 어둡고 스산한 지하 심연 루프 음원 -->
-        <audio id="bgmAudio" loop preload="auto">
+        <!-- 어둡고 스산한 지하 심연 루프 음원 (autoplay 속성 추가) -->
+        <audio id="bgmAudio" loop preload="auto" autoplay>
             <source src="https://cdn.pixabay.com/download/audio/2022/05/16/audio_c038fb5029.mp3?filename=dungeon-ambience-110257.mp3" type="audio/mpeg">
         </audio>
     </div>
@@ -248,10 +248,10 @@
 
         <label for="voiceSelect" style="margin-top: 12px;">🎙️ AI 성우 선택:</label>
         <select id="voiceSelect">
-            <option value="ko-KR-Journey-F" selected>AI Journey F (차세대 스토리텔러 - 추천)</option>
-            <option value="ko-KR-Neural2-C">AI Neural2 C (깊은 남성 저음)</option>
-            <option value="ko-KR-Wavenet-C">AI Wavenet C (클래식 저음)</option>
-            <option value="ko-KR-Neural2-A">AI Neural2 A (스산한 여성 톤)</option>
+            <option value="ko-KR-Neural2-C" selected>AI Neural2 C (깊고 냉철한 남성 - 추천)</option>
+            <option value="ko-KR-Neural2-A">AI Neural2 A (스산하고 차가운 여성)</option>
+            <option value="ko-KR-Wavenet-C">AI Wavenet C (클래식 저음 남성)</option>
+            <option value="ko-KR-Chirp-HD-F">AI Chirp HD F (고품질 여성 톤)</option>
         </select>
 
         <!-- 목소리 톤 및 속도 세부 설정 창 -->
@@ -280,13 +280,48 @@
     let cropper = null;
     let currentAudio = null;
 
-    // 저장된 API Key 로드
+    // 초기화 및 오토플레이 수동 우회 로직
     document.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('gcp_api_key');
         if (savedKey) {
             document.getElementById('apiKey').value = savedKey;
         }
+
+        // BGM 자동 재생 시도
+        startBGMAutoPlay();
     });
+
+    function startBGMAutoPlay() {
+        const bgm = document.getElementById('bgmAudio');
+        const btn = document.getElementById('bgmToggleBtn');
+
+        bgm.volume = 0.3; // 기본 볼륨 30%
+
+        const playPromise = bgm.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                btn.textContent = '⏸️ BGM 일시정지';
+                btn.style.borderColor = '#c99a4e';
+            }).catch(() => {
+                // 모바일 브라우저가 자동 재생을 차단한 경우,
+                // 사용자가 화면을 처음 스크롤하거나 아무 곳이나 터치할 때 BGM 자동 시작
+                const enableAudioOnUserGesture = () => {
+                    bgm.play().then(() => {
+                        btn.textContent = '⏸️ BGM 일시정지';
+                        btn.style.borderColor = '#c99a4e';
+                    });
+                    // 이벤트 한번 실행 후 제거
+                    window.removeEventListener('touchstart', enableAudioOnUserGesture);
+                    window.removeEventListener('click', enableAudioOnUserGesture);
+                    window.removeEventListener('scroll', enableAudioOnUserGesture);
+                };
+
+                window.addEventListener('touchstart', enableAudioOnUserGesture, { once: true });
+                window.addEventListener('click', enableAudioOnUserGesture, { once: true });
+                window.addEventListener('scroll', enableAudioOnUserGesture, { once: true });
+            });
+        }
+    }
 
     document.getElementById('apiKey').addEventListener('input', (e) => {
         localStorage.setItem('gcp_api_key', e.target.value.trim());
@@ -315,7 +350,7 @@
         document.getElementById('statusBox').style.display = 'none';
     }
 
-    // BGM 제어 함수 (보안 차단 안내 보완)
+    // BGM 토글 함수
     function toggleBGM() {
         const bgm = document.getElementById('bgmAudio');
         const btn = document.getElementById('bgmToggleBtn');
@@ -325,8 +360,6 @@
                 hideStatus();
                 btn.textContent = '⏸️ BGM 일시정지';
                 btn.style.borderColor = '#c99a4e';
-            }).catch(e => {
-                showStatus('브라우저 보안 정책으로 소리가 차단되었습니다. 화면을 한번 터치한 후 다시 눌러주세요.');
             });
         } else {
             bgm.pause();
@@ -418,7 +451,7 @@
         }
     }
 
-    // Google Cloud TTS 연동 (SSML 기반 문장 간 침묵 및 극저음 연출)
+    // Google Cloud TTS 연동
     async function playTTS() {
         stopTTS();
 
@@ -441,7 +474,6 @@
 
         showStatus('스산한 던전 마스터 음성을 생성하는 중입니다...');
 
-        // SSML 적용: 마침표(.) 뒤 0.6초, 쉼표(,) 뒤 0.3초의 서스펜스 침묵 추가
         const ssmlText = `<speak>
             <break time="400ms"/>
             ${rawText.replace(/\./g, '. <break time="600ms"/>').replace(/,/g, ', <break time="300ms"/>')}
