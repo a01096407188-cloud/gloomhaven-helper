@@ -213,7 +213,7 @@
 
     <!-- 배경음악 (BGM) 설정 -->
     <div class="card">
-        <label>🦇 지하 동굴 앰비언스 (나레이션 연동 BGM):</label>
+        <label>⚔️ 긴급한 용병단 전장 BGM (나레이션 연동):</label>
         <div class="bgm-controls">
             <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
@@ -259,7 +259,6 @@
                 <label for="rateSlider">⚡ 말하기 속도:</label>
                 <span class="setting-val" id="rateVal">1.20x</span>
             </div>
-            <!-- 말하기 속도 기본값을 1.2로 수정 -->
             <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.05" value="1.2" oninput="document.getElementById('rateVal').innerText = parseFloat(this.value).toFixed(2) + 'x'">
         </div>
 
@@ -279,6 +278,7 @@
     let bgmMasterGain = null;
     let isBgmPlaying = false;
     let bgmOscillators = [];
+    let bgmPulseTimer = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('gcp_api_key');
@@ -302,34 +302,28 @@
         }
     }
 
-    // 🦇 선명하고 웅장한 지하 동굴 앰비언스 사운드 합성
+    // ⚔️ 어둡고 긴급하며 용병단 전장의 긴박함을 표현한 BGM
     function startSynthBGM() {
         initAudioContext();
         if (isBgmPlaying) return;
 
-        // 극저음 + 중음역대 주파수 조합 (A1, A2, A3, E4)
-        const freqs = [55, 110, 220, 329.63];
         bgmOscillators = [];
 
-        freqs.forEach((freq, index) => {
+        // 1. 긴박한 베이스라인 (C2 - C#2 긴장감 조성 불협화음)
+        const baseFreqs = [130.81, 138.59, 196.00]; // C3, C#3, G3
+        baseFreqs.forEach((freq, i) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            // 저음은 두꺼운 sawtooth, 중음역대는 부드럽고 음산한 triangle 파형 사용
-            osc.type = index < 2 ? 'sawtooth' : 'triangle'; 
+            osc.type = i % 2 === 0 ? 'sawtooth' : 'square';
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            // 디튠을 살짝 늘려 공간감과 울림 부여
-            osc.detune.setValueAtTime((Math.random() - 0.5) * 22, audioCtx.currentTime); 
+            osc.detune.setValueAtTime((Math.random() - 0.5) * 15, audioCtx.currentTime);
 
-            // 중음역대는 나레이션을 방해하지 않도록 볼륨을 밸런스 있게 조절
-            const baseGain = index < 2 ? 0.10 : 0.06;
-            gain.gain.setValueAtTime(baseGain, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
 
-            // 필터 주파수를 700Hz로 올려 음색을 훨씬 선명하게 개방
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(700, audioCtx.currentTime); 
+            filter.frequency.setValueAtTime(800, audioCtx.currentTime);
 
             osc.connect(gain);
             gain.connect(filter);
@@ -339,6 +333,37 @@
             bgmOscillators.push(osc);
         });
 
+        // 2. 긴급한 펄스 리듬 루프 생성 (용병단의 긴박한 진군 느낌)
+        let pulseStep = 0;
+        const pulseFreqs = [261.63, 277.18, 311.13, 261.63]; // C4, C#4, D#4, C4 (긴장 음계)
+
+        bgmPulseTimer = setInterval(() => {
+            if (!isBgmPlaying || !audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(pulseFreqs[pulseStep % pulseFreqs.length], audioCtx.currentTime);
+
+            // 두둥-두둥 끊어치는 타격감 패널
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1200, audioCtx.currentTime);
+
+            osc.connect(gain);
+            gain.connect(filter);
+            filter.connect(bgmMasterGain);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+
+            pulseStep++;
+        }, 250); // 250ms 마다 긴급 펄스 재생
+
         isBgmPlaying = true;
         const btn = document.getElementById('bgmToggleBtn');
         btn.textContent = '⏸️ BGM 일시정지';
@@ -346,6 +371,11 @@
     }
 
     function stopSynthBGM() {
+        if (bgmPulseTimer) {
+            clearInterval(bgmPulseTimer);
+            bgmPulseTimer = null;
+        }
+
         bgmOscillators.forEach(osc => {
             try { osc.stop(); } catch(e) {}
         });
