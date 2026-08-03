@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>긴박한 용병단 3 - 사자의 턱 BGM 오케스트라</title>
+    <title>긴박한 용병단 3 - 다키스트 던전 오케스트라 & 나레이션</title>
     
     <!-- Cropper.js CDN (이미지 영역 선택용) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -189,15 +189,9 @@
 
         .bgm-controls {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .bgm-row {
-            display: flex;
             align-items: center;
             gap: 10px;
+            margin-top: 8px;
         }
     </style>
 </head>
@@ -217,21 +211,14 @@
         </div>
     </div>
 
-    <!-- 배경음악 (BGM) 선택 및 조절 -->
+    <!-- 다키스트 던전 전용 BGM 컨트롤 -->
     <div class="card">
-        <label for="bgmSelect">🏰 던전 테마 BGM 선택 (Web Audio API):</label>
-        <select id="bgmSelect" onchange="if(isBgmPlaying){ stopSynthBGM(); startSynthBGM(); }">
-            <option value="darkest" selected>🗡️ 다키스트 던전 (Town in Chaos / Hamlet)</option>
-            <option value="antcave">🐜 메이플스토리 (개미굴 / Cave Theme)</option>
-        </select>
-
-        <div class="bgm-controls" style="margin-top: 12px;">
-            <div class="bgm-row">
-                <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
-                <div style="flex: 1;">
-                    <span class="setting-val" id="bgmVolVal">볼륨: 80%</span>
-                    <input type="range" id="bgmVolSlider" min="0" max="1" step="0.05" value="0.8" oninput="updateBGMVolume(this.value)">
-                </div>
+        <label>🗡️ 다키스트 던전 OST 오케스트라 BGM:</label>
+        <div class="bgm-controls">
+            <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
+            <div style="flex: 1;">
+                <span class="setting-val" id="bgmVolVal">볼륨: 80%</span>
+                <input type="range" id="bgmVolSlider" min="0" max="1" step="0.05" value="0.8" oninput="updateBGMVolume(this.value)">
             </div>
         </div>
     </div>
@@ -253,30 +240,30 @@
     <!-- 시나리오 텍스트 입력 & TTS 및 목소리 설정 -->
     <div class="card">
         <label for="scenarioText">📖 시나리오 텍스트:</label>
-        <textarea id="scenarioText" placeholder="텍스트를 직접 입력하거나 위의 이미지에서 OCR로 추출하세요.">어둡고 축축한 지하 동굴 속에서 차가운 바람이 불어온다. 사자의 턱 용병단이여, 이곳에서 살아돌아갈 수 있을 것 같으냐...</textarea>
+        <textarea id="scenarioText" placeholder="텍스트를 직접 입력하거나 위의 이미지에서 OCR로 추출하세요.">파멸이 우리 가문에 찾아왔다. 영지 가장자리에 솟아오른 흉물스러운 저택, 그 아래에는 깊고 어두운 공포가 도사리고 있나니...</textarea>
 
-        <label for="voiceSelect" style="margin-top: 12px;">🎙️ AI 성우 선택 (구글 API 실시간 목록):</label>
+        <label for="voiceSelect" style="margin-top: 12px;">🎙️ AI 성우 선택 (다키스트 톤 적용):</label>
         <select id="voiceSelect">
             <option value="">API 키를 입력하면 목소리 목록을 불러옵니다...</option>
         </select>
 
-        <!-- 목소리 톤 및 속도 세부 설정 창 -->
+        <!-- 목소리 톤 및 속도 세부 설정 창 (다키스트 나레이터 튜닝) -->
         <div style="margin-top: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border: 1px solid #3a2b17;">
             <div class="setting-row">
-                <label for="pitchSlider">🎼 음높이 (톤 저음 조절):</label>
-                <span class="setting-val" id="pitchVal">-6.5 (극저음)</span>
+                <label for="pitchSlider">💀 음높이 (Wayne June 딥 베이스 톤):</label>
+                <span class="setting-val" id="pitchVal">-8.0 (심연의 저음)</span>
             </div>
-            <input type="range" id="pitchSlider" min="-10.0" max="5.0" step="0.5" value="-6.5" oninput="document.getElementById('pitchVal').innerText = this.value + (this.value <= -5 ? ' (극저음)' : '')">
+            <input type="range" id="pitchSlider" min="-12.0" max="2.0" step="0.5" value="-8.0" oninput="document.getElementById('pitchVal').innerText = this.value + (this.value <= -6 ? ' (심연의 저음)' : '')">
 
             <div class="setting-row" style="margin-top: 10px;">
-                <label for="rateSlider">⚡ 말하기 속도:</label>
-                <span class="setting-val" id="rateVal">1.20x</span>
+                <label for="rateSlider">⏳ 나레이션 속도 (묵직한 템포):</label>
+                <span class="setting-val" id="rateVal">0.82x</span>
             </div>
-            <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.05" value="1.2" oninput="document.getElementById('rateVal').innerText = parseFloat(this.value).toFixed(2) + 'x'">
+            <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.02" value="0.82" oninput="document.getElementById('rateVal').innerText = parseFloat(this.value).toFixed(2) + 'x'">
         </div>
 
         <div class="button-group">
-            <button type="button" class="btn" onclick="playTTS()">🔊 시나리오 읽기</button>
+            <button type="button" class="btn" onclick="playTTS()">🔊 다키스트 톤으로 읽기</button>
             <button type="button" class="btn btn-secondary" onclick="stopTTS()">■ 정지</button>
         </div>
     </div>
@@ -323,11 +310,11 @@
         }
     }
 
-    // 🎻 1. 디튠 현악기 (다키스트 던전 / 개미굴 공용 스트링 패드)
-    function playDarkStrings(freq, time, duration = 3.0) {
+    // 🎻 1. 다키스트 던전 특유의 디튠 현악기 (Cello / Viola Ensemble)
+    function playDarkestStrings(freq, time, duration = 3.5) {
         if (!audioCtx || !isBgmPlaying) return;
 
-        [0, 4, -4].forEach(detuneVal => {
+        [-7, 0, 7].forEach(detuneVal => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
@@ -337,10 +324,10 @@
 
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(380, time);
+            filter.frequency.setValueAtTime(320, time);
 
-            gain.gain.setValueAtTime(0.01, time);
-            gain.gain.linearRampToValueAtTime(0.07, time + 0.5);
+            gain.gain.setValueAtTime(0.001, time);
+            gain.gain.linearRampToValueAtTime(0.08, time + 0.6);
             gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
             osc.connect(filter);
@@ -352,21 +339,21 @@
         });
     }
 
-    // 🎹 2. 어두운 피아노 / 플럭 멜로디
-    function playDarkNote(freq, time, duration = 2.0, isPluck = false) {
+    // 🎹 2. 다키스트 던전 불협화음 아르페지오 (Gothic Harpsichord / Piano)
+    function playDarkestArpeggio(freq, time, duration = 1.8) {
         if (!audioCtx || !isBgmPlaying) return;
 
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
-        osc.type = isPluck ? 'triangle' : 'sine';
+        osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, time);
 
         const filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(isPluck ? 800 : 450, time);
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(650, time);
 
-        gain.gain.setValueAtTime(isPluck ? 0.15 : 0.25, time);
+        gain.gain.setValueAtTime(0.2, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
         osc.connect(filter);
@@ -377,8 +364,8 @@
         osc.stop(time + duration);
     }
 
-    // 🥁 3. 던전 타악기 / 노이즈 심벌
-    function playDungeonPercussion(time, isCymbal = false) {
+    // 🥁 3. 긴장감을 만드는 묵직한 탐험 스네어 & 금속 심벌
+    function playDarkestPercussion(time, isCymbal = false) {
         if (!audioCtx || !isBgmPlaying || !noiseBuffer) return;
 
         const noise = audioCtx.createBufferSource();
@@ -389,14 +376,14 @@
 
         if (isCymbal) {
             filter.type = 'highpass';
-            filter.frequency.setValueAtTime(3500, time);
-            gain.gain.setValueAtTime(0.05, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8);
+            filter.frequency.setValueAtTime(3000, time);
+            gain.gain.setValueAtTime(0.06, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 1.2);
         } else {
             filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(500, time);
-            gain.gain.setValueAtTime(0.12, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+            filter.frequency.setValueAtTime(450, time);
+            gain.gain.setValueAtTime(0.18, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
         }
 
         noise.connect(filter);
@@ -404,71 +391,44 @@
         gain.connect(bgmMasterGain);
 
         noise.start(time);
-        noise.stop(time + (isCymbal ? 0.8 : 0.2));
+        noise.stop(time + (isCymbal ? 1.2 : 0.25));
     }
 
-    // 🏰 종합 오케스트라 BGM 루프 (다키스트 던전 & 메이플 개미굴 선택 재생)
+    // 🗡️ 다키스트 던전 전용 BGM 루프 (Cm Harmonic Minor 테마)
     function startSynthBGM() {
         initAudioContext();
         if (isBgmPlaying) return;
 
         isBgmPlaying = true;
-
-        const bgmType = document.getElementById('bgmSelect').value;
         let step = 0;
 
-        if (bgmType === 'darkest') {
-            // 🗡️ 다키스트 던전: Cm -> Cm/B -> Cm/Bb -> F/A 진행
-            const progression = [
-                { bass: 65.41, notes: [261.63, 311.13, 392.00] },
-                { bass: 61.74, notes: [246.94, 311.13, 392.00] },
-                { bass: 58.27, notes: [233.08, 311.13, 392.00] },
-                { bass: 55.00, notes: [220.00, 261.63, 349.23] }
-            ];
+        const darkestChords = [
+            { bass: 65.41, notes: [130.81, 155.56, 196.00, 246.94] }, 
+            { bass: 61.74, notes: [123.47, 155.56, 196.00, 246.94] }, 
+            { bass: 58.27, notes: [116.54, 155.56, 196.00, 233.08] }, 
+            { bass: 51.91, notes: [103.83, 155.56, 174.61, 207.65] }  
+        ];
 
-            bgmLoopTimer = setInterval(() => {
-                if (!isBgmPlaying || !audioCtx) return;
-                const now = audioCtx.currentTime;
+        bgmLoopTimer = setInterval(() => {
+            if (!isBgmPlaying || !audioCtx) return;
+            const now = audioCtx.currentTime;
 
-                if (step % 4 === 0) {
-                    const chord = progression[Math.floor(step / 4) % progression.length];
-                    playDarkStrings(chord.bass, now, 3.2);
-                    playDungeonPercussion(now, true);
-                    
-                    chord.notes.forEach((freq, i) => {
-                        playDarkNote(freq, now + (i * 0.25), 2.2, false);
-                    });
-                } else if (step % 2 === 0) {
-                    playDungeonPercussion(now, false);
-                }
+            const chord = darkestChords[Math.floor(step / 4) % darkestChords.length];
 
-                step++;
-            }, 400);
+            if (step % 4 === 0) {
+                playDarkestStrings(chord.bass, now, 3.6);
+                playDarkestPercussion(now, true);
+            }
 
-        } else if (bgmType === 'antcave') {
-            // 🐜 메이플스토리 개미굴: Dm 기반의 단조 아르페지오 및 울림 멜로디
-            const bassSeq = [73.42, 65.41, 69.30, 55.00]; // D2 -> C2 -> C#2 -> A1
-            const melodySeq = [293.66, 349.23, 440.00, 587.33, 554.37, 466.16, 440.00, 349.23];
+            const noteIndex = step % chord.notes.length;
+            playDarkestArpeggio(chord.notes[noteIndex], now, 1.5);
 
-            bgmLoopTimer = setInterval(() => {
-                if (!isBgmPlaying || !audioCtx) return;
-                const now = audioCtx.currentTime;
+            if (step % 2 === 1) {
+                playDarkestPercussion(now, false);
+            }
 
-                if (step % 4 === 0) {
-                    const bassFreq = bassSeq[Math.floor(step / 4) % bassSeq.length];
-                    playDarkStrings(bassFreq, now, 2.5);
-                }
-
-                const mNote = melodySeq[step % melodySeq.length];
-                playDarkNote(mNote, now, 0.9, true);
-
-                if (step % 2 === 1) {
-                    playDungeonPercussion(now, false);
-                }
-
-                step++;
-            }, 300);
-        }
+            step++;
+        }, 380);
 
         const btn = document.getElementById('bgmToggleBtn');
         btn.textContent = '⏸️ BGM 일시정지';
@@ -538,7 +498,8 @@
                 let genderText = v.ssmlGender === 'MALE' ? '남성' : (v.ssmlGender === 'FEMALE' ? '여성' : '중성');
                 opt.textContent = `${v.name} (${genderText})`;
 
-                if (v.name === 'ko-KR-Neural2-C') {
+                // 💀 다키스트 던전 나레이션에 가장 부합하는 묵직한 남성 음성 기본 선택
+                if (v.name === 'ko-KR-Neural2-C' || v.name === 'ko-KR-Wavenet-C') {
                     opt.selected = true;
                 }
 
@@ -648,6 +609,7 @@
         }
     }
 
+    // 🎙️ 다키스트 던전 나레이터 Wayne June 톤 생성 로직 (SSML 고급 포맷팅)
     async function playTTS() {
         stopTTS();
 
@@ -673,11 +635,21 @@
             return;
         }
 
-        showStatus('스산한 던전 마스터 음성을 생성하는 중입니다...');
+        showStatus('다키스트 나레이터 톤으로 심연의 음성을 조율하는 중입니다...');
+
+        // 💀 Wayne June의 시그니처 휴식 및 호흡 템포(SSML 튜닝)
+        let formattedText = rawText
+            .replace(/\./g, '. <break time="800ms"/>')
+            .replace(/,/g, ', <break time="450ms"/>')
+            .replace(/\!/g, '! <break time="700ms"/>')
+            .replace(/\?/g, '? <break time="750ms"/>');
 
         const ssmlText = `<speak>
-            <break time="400ms"/>
-            ${rawText.replace(/\./g, '. <break time="600ms"/>').replace(/,/g, ', <break time="300ms"/>')}
+            <prosody pitch="-15%" rate="85%" volume="loud">
+                <break time="500ms"/>
+                ${formattedText}
+                <break time="600ms"/>
+            </prosody>
         </speak>`;
 
         const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
