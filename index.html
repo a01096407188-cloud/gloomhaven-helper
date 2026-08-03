@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>글룸헤이븐: 사자의 턱1 - 시나리오 헬퍼</title>
+    <title>글룸헤이븐: 사자의 턱 - 시나리오 헬퍼</title>
     
     <!-- Cropper.js CDN (이미지 영역 선택용) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -213,7 +213,7 @@
 
     <!-- 배경음악 (BGM) 설정 -->
     <div class="card">
-        <label>🦇 스산한 던전 앰비언스 (Web Audio 합성):</label>
+        <label>🦇 스산한 던전 앰비언스 (나레이션 연동 BGM):</label>
         <div class="bgm-controls">
             <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
@@ -285,8 +285,6 @@
             document.getElementById('apiKey').value = savedKey;
             fetchVoices(savedKey);
         }
-
-        setupAutoBGM();
     });
 
     // Web Audio API 오디오 컨텍스트 초기화
@@ -316,15 +314,15 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            osc.type = 'sawtooth'; // 두껍고 스산한 파형
+            osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-            // 주파수를 아주 미세하게 연동시켜 차가운 불협화음 연출
+            // 차가운 불협화음 연출
             osc.detune.setValueAtTime((Math.random() - 0.5) * 15, audioCtx.currentTime);
 
             gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
 
-            // 저주파 필터로 먹먹한 동굴 느낌 연출
+            // 저주파 필터
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(300, audioCtx.currentTime);
@@ -368,21 +366,6 @@
             bgmMasterGain.gain.setValueAtTime(parseFloat(val), audioCtx.currentTime);
         }
         document.getElementById('bgmVolVal').innerText = `볼륨: ${Math.round(val * 100)}%`;
-    }
-
-    function setupAutoBGM() {
-        const handleFirstInteraction = () => {
-            if (!isBgmPlaying) {
-                startSynthBGM();
-            }
-            window.removeEventListener('touchstart', handleFirstInteraction);
-            window.removeEventListener('click', handleFirstInteraction);
-            window.removeEventListener('scroll', handleFirstInteraction);
-        };
-
-        window.addEventListener('touchstart', handleFirstInteraction, { once: true });
-        window.addEventListener('click', handleFirstInteraction, { once: true });
-        window.addEventListener('scroll', handleFirstInteraction, { once: true });
     }
 
     document.getElementById('apiKey').addEventListener('input', (e) => {
@@ -594,6 +577,15 @@
                 hideStatus();
                 const audioSrc = 'data:audio/mp3;base64,' + data.audioContent;
                 currentAudio = new Audio(audioSrc);
+
+                // 🔊 1. 나레이션 시작 시 BGM 자동으로 키기
+                startSynthBGM();
+
+                // 🔇 2. 나레이션이 모두 끝나면 BGM 자동으로 끄기
+                currentAudio.onended = () => {
+                    stopSynthBGM();
+                };
+
                 currentAudio.play();
             } else {
                 showStatus('음성 데이터를 받지 못했습니다.', true);
@@ -609,6 +601,8 @@
             currentAudio.currentTime = 0;
             currentAudio = null;
         }
+        // 🔇 정지 버튼 누를 시 BGM도 자동으로 꺼짐
+        stopSynthBGM();
     }
 </script>
 
