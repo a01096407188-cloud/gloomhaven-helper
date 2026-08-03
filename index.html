@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>긴박한 용병단 2</title>
+    <title>긴박한 용병단 3</title>
     
     <!-- Cropper.js CDN (이미지 영역 선택용) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -198,7 +198,7 @@
 <body>
 
 <div class="container">
-    <h1>긴박한 용병단 2</h1>
+    <h1>긴박한 용병단 3</h1>
 
     <div id="statusBox" class="status-msg"></div>
 
@@ -213,7 +213,7 @@
 
     <!-- 배경음악 (BGM) 설정 -->
     <div class="card">
-        <label>⚔️ 긴급한 용병단 전장 BGM (볼륨 80% 고정):</label>
+        <label>🎹 저음 피아노 & 펄스 BGM (볼륨 80% 고정):</label>
         <div class="bgm-controls">
             <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
@@ -277,7 +277,6 @@
     let audioCtx = null;
     let bgmMasterGain = null;
     let isBgmPlaying = false;
-    let bgmOscillators = [];
     let bgmPulseTimer = null;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -303,69 +302,95 @@
         }
     }
 
-    // ⚔️ 펄스 리듬이 강조되고 저음이 절제된 BGM (긴박한 용병단 2)
+    // 🎹 저음 피아노 음색 합성 함수 (Sine + Triangle 오실레이터 조합)
+    function playDarkPianoNote(freq, time, duration = 2.5) {
+        if (!audioCtx || !isBgmPlaying) return;
+
+        // 메인 피아노 음선 (Sine wave)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(freq, time);
+
+        // 어택/해머 타격감을 만드는 배음 (Triangle wave)
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(freq * 2, time); // 1옥타브 위 배음
+
+        // Lowpass 필터로 고음을 잘라내 묵직한 디프(Deep) 피아노 톤 연출
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(450, time);
+
+        // Envelope (엔벨롭): 피아노 어택 및 감쇠 (Decay)
+        gain1.gain.setValueAtTime(0.35, time);
+        gain1.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        gain2.gain.setValueAtTime(0.12, time);
+        gain2.gain.exponentialRampToValueAtTime(0.001, time + (duration * 0.5));
+
+        osc1.connect(gain1);
+        osc2.connect(gain2);
+        gain1.connect(filter);
+        gain2.connect(filter);
+        filter.connect(bgmMasterGain);
+
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration);
+        osc2.stop(time + duration);
+    }
+
+    // ⚔️ 저음 피아노 선율과 어두운 펄스가 결합된 BGM (긴박한 용병단 3)
     function startSynthBGM() {
         initAudioContext();
         if (isBgmPlaying) return;
 
-        bgmOscillators = [];
+        isBgmPlaying = true;
 
-        // 1. 저음을 축소한 배경 톤 (옥타브 올려 저음 부담 완화 & 약한 볼륨)
-        const baseFreqs = [261.63, 277.18]; // C4, C#4 (저음을 약화시키고 불협화음 살림)
-        baseFreqs.forEach((freq, i) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-            // 저음 음량을 0.02로 극소화
-            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'highpass'; // 저음 주파수를 잘라내는 하이패스 필터 적용
-            filter.frequency.setValueAtTime(200, audioCtx.currentTime);
-
-            osc.connect(gain);
-            gain.connect(filter);
-            filter.connect(bgmMasterGain);
-
-            osc.start();
-            bgmOscillators.push(osc);
-        });
-
-        // 2. 강렬하고 또렷해진 펄스 타격 리듬 (볼륨 대폭 상승)
-        let pulseStep = 0;
-        const pulseFreqs = [311.13, 293.66, 349.23, 277.18]; // D#4, D4, F4, C#4 (긴급한 음계)
+        let step = 0;
+        // 저음 피아노 음계 (D2, F2, A2, A#2 - 웅장하고 어두운 단조)
+        const pianoNotes = [73.42, 87.31, 110.00, 116.54]; 
+        // 다크 펄스 주파수 (경쾌함을 제외하고 묵직하게 보정)
+        const pulseFreqs = [146.83, 130.81, 164.81, 138.59];
 
         bgmPulseTimer = setInterval(() => {
             if (!isBgmPlaying || !audioCtx) return;
 
+            const now = audioCtx.currentTime;
+
+            // 1. 매 4스텝마다 저음 피아노 음색 연주 (깊은 울림)
+            if (step % 4 === 0) {
+                const noteIndex = Math.floor(step / 4) % pianoNotes.length;
+                playDarkPianoNote(pianoNotes[noteIndex], now, 2.2);
+            }
+
+            // 2. 묵직하고 절제된 다크 펄스 리듬
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            osc.type = 'square'; // 타격감이 명확한 사각파 사용
-            osc.frequency.setValueAtTime(pulseFreqs[pulseStep % pulseFreqs.length], audioCtx.currentTime);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(pulseFreqs[step % pulseFreqs.length], now);
 
-            // 펄스 음량을 기존 0.08에서 0.22로 커스텀 강화하여 크게 타격
-            gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            // 서스펜스 강화를 위해 적절한 타격감 유지
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
             const filter = audioCtx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1500, audioCtx.currentTime);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(700, now); // 피치를 낮춰 경쾌함 감소
 
             osc.connect(gain);
             gain.connect(filter);
             filter.connect(bgmMasterGain);
 
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.16);
+            osc.start(now);
+            osc.stop(now + 0.23);
 
-            pulseStep++;
-        }, 200); // 200ms 단위로 더욱 빠른 긴급 펄스 타격
+            step++;
+        }, 250); // 250ms로 템포를 완화하여 경쾌함을 줄이고 중후한 긴장감 부여
 
-        isBgmPlaying = true;
         const btn = document.getElementById('bgmToggleBtn');
         btn.textContent = '⏸️ BGM 일시정지';
         btn.style.borderColor = '#c99a4e';
@@ -377,10 +402,6 @@
             bgmPulseTimer = null;
         }
 
-        bgmOscillators.forEach(osc => {
-            try { osc.stop(); } catch(e) {}
-        });
-        bgmOscillators = [];
         isBgmPlaying = false;
 
         const btn = document.getElementById('bgmToggleBtn');
