@@ -215,15 +215,15 @@
     <div class="card">
         <label>🦇 스산한 동굴 BGM (개미굴 분위기):</label>
         <div class="bgm-controls">
-            <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">⏸️ BGM 일시정지</button>
+            <button type="button" class="btn btn-secondary" id="bgmToggleBtn" onclick="toggleBGM()" style="flex: 1;">🎵 BGM 재생 / 일시정지</button>
             <div style="flex: 1;">
                 <span class="setting-val" id="bgmVolVal">볼륨: 30%</span>
                 <input type="range" id="bgmVolSlider" min="0" max="1" step="0.05" value="0.3" oninput="updateBGMVolume(this.value)">
             </div>
         </div>
-        <!-- 어둡고 스산한 지하 심연 루프 음원 (autoplay 속성 추가) -->
-        <audio id="bgmAudio" loop preload="auto" autoplay>
-            <source src="https://cdn.pixabay.com/download/audio/2022/05/16/audio_c038fb5029.mp3?filename=dungeon-ambience-110257.mp3" type="audio/mpeg">
+        <!-- 글로벌 CDN 고신뢰 음원 링크로 교체 -->
+        <audio id="bgmAudio" loop crossorigin="anonymous" preload="auto">
+            <source src="https://codeskulptor-demos.commondatastorage.googleapis.com/desolation.mp3" type="audio/mpeg">
         </audio>
     </div>
 
@@ -280,47 +280,34 @@
     let cropper = null;
     let currentAudio = null;
 
-    // 초기화 및 오토플레이 수동 우회 로직
     document.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('gcp_api_key');
         if (savedKey) {
             document.getElementById('apiKey').value = savedKey;
         }
 
-        // BGM 자동 재생 시도
-        startBGMAutoPlay();
+        setupAutoBGM();
     });
 
-    function startBGMAutoPlay() {
+    // 모바일 터치 시 자동 재생 리스너 설정
+    function setupAutoBGM() {
         const bgm = document.getElementById('bgmAudio');
-        const btn = document.getElementById('bgmToggleBtn');
+        bgm.volume = 0.3;
 
-        bgm.volume = 0.3; // 기본 볼륨 30%
+        const handleFirstInteraction = () => {
+            if (bgm.paused) {
+                bgm.play().then(() => {
+                    const btn = document.getElementById('bgmToggleBtn');
+                    btn.textContent = '⏸️ BGM 일시정지';
+                    btn.style.borderColor = '#c99a4e';
+                }).catch(e => console.log('BGM Play Error:', e));
+            }
+            window.removeEventListener('touchstart', handleFirstInteraction);
+            window.removeEventListener('click', handleFirstInteraction);
+        };
 
-        const playPromise = bgm.play();
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                btn.textContent = '⏸️ BGM 일시정지';
-                btn.style.borderColor = '#c99a4e';
-            }).catch(() => {
-                // 모바일 브라우저가 자동 재생을 차단한 경우,
-                // 사용자가 화면을 처음 스크롤하거나 아무 곳이나 터치할 때 BGM 자동 시작
-                const enableAudioOnUserGesture = () => {
-                    bgm.play().then(() => {
-                        btn.textContent = '⏸️ BGM 일시정지';
-                        btn.style.borderColor = '#c99a4e';
-                    });
-                    // 이벤트 한번 실행 후 제거
-                    window.removeEventListener('touchstart', enableAudioOnUserGesture);
-                    window.removeEventListener('click', enableAudioOnUserGesture);
-                    window.removeEventListener('scroll', enableAudioOnUserGesture);
-                };
-
-                window.addEventListener('touchstart', enableAudioOnUserGesture, { once: true });
-                window.addEventListener('click', enableAudioOnUserGesture, { once: true });
-                window.addEventListener('scroll', enableAudioOnUserGesture, { once: true });
-            });
-        }
+        window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+        window.addEventListener('click', handleFirstInteraction, { once: true });
     }
 
     document.getElementById('apiKey').addEventListener('input', (e) => {
@@ -350,7 +337,6 @@
         document.getElementById('statusBox').style.display = 'none';
     }
 
-    // BGM 토글 함수
     function toggleBGM() {
         const bgm = document.getElementById('bgmAudio');
         const btn = document.getElementById('bgmToggleBtn');
@@ -360,6 +346,8 @@
                 hideStatus();
                 btn.textContent = '⏸️ BGM 일시정지';
                 btn.style.borderColor = '#c99a4e';
+            }).catch(e => {
+                showStatus('소리 재생이 차단되었습니다. 화면을 터치 후 다시 눌러주세요.');
             });
         } else {
             bgm.pause();
@@ -374,7 +362,6 @@
         document.getElementById('bgmVolVal').innerText = `볼륨: ${Math.round(val * 100)}%`;
     }
 
-    // Cropper 이미지 세팅
     document.getElementById('imageInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -400,7 +387,6 @@
         reader.readAsDataURL(file);
     });
 
-    // Vision OCR 처리
     async function processOCR() {
         const apiKey = document.getElementById('apiKey').value.trim();
         if (!apiKey) {
@@ -451,7 +437,6 @@
         }
     }
 
-    // Google Cloud TTS 연동
     async function playTTS() {
         stopTTS();
 
